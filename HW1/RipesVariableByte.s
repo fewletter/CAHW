@@ -1,19 +1,146 @@
 .data
 testdata:
         .word 0, 128
-        .word 0, 1023
-        .word 0xffffff, 0xffffffff
+        .word 0, 0xfffffff
+        .word 0xfffffff, 0xffffffff
         
 and1: .word 0x33333333, 0x33333333
 and2: .word 0x0f0f0f0f, 0x0f0f0f0f
 and3: .word 0x55555555, 0x55555555
+\n: .string "\n"
+
+encodedData1:
+    .word 0
+encodedData2:
+    .word 0
+encodedData3:
+    .word 0, 0
 
 .text
 main:
-    la  t0, testdata
-    lw  a0, 0(t0)
-    lw  a1, 4(t0)
-    jal ra, CLZ
+    la   t6, testdata
+    lw   a0, 0(t6)
+    lw   a1, 4(t6)
+    jal  ra, CLZ
+    li   t1, 63
+    sub  a0, t1, a0
+    li   t1, 7
+    div  a0, a0, t1
+    addi a0, a0, 1   #a0 = len1
+    lw   a1, 4(t6)   #a1,a2 = value  
+    lw   a2, 0(t6)
+    la   t5, encodedData1  # uint32_t encodedData1[1] = {0}
+    lw   a3, 0(t5)
+    jal  ra, encodeVariableByte
+    mv   t6, a3
+    jal  ra, printb
+    
+    la   t6, testdata
+    lw   a0, 8(t6)
+    lw   a1, 12(t6)
+    jal  ra, CLZ
+    li   t1, 63
+    sub  a0, t1, a0
+    li   t1, 7
+    div  a0, a0, t1
+    addi a0, a0, 1   #a0 = len1
+    lw   a1, 12(t6)   #a1,a2 = value  
+    lw   a2, 8(t6)
+    la   t5, encodedData2  # uint32_t encodedData2[1] = {0}
+    lw   a3, 0(t5)
+    jal  ra, encodeVariableByte
+    mv   t6, a3
+    jal  ra, printb
+    
+    la   t6, testdata
+    lw   a0, 16(t6)
+    lw   a1, 20(t6)
+    jal  ra, CLZ
+    li   t1, 63
+    sub  a0, t1, a0
+    li   t1, 7
+    div  a0, a0, t1
+    addi a0, a0, 1   #a0 = len1
+    lw   a1, 20(t6)   #a1,a2 = value  
+    lw   a2, 16(t6)
+    la   t5, encodedData3  # uint32_t encodedData2[2] = {0,0}
+    lw   a3, 0(t5)
+    lw   a4, 4(t5)
+    jal  ra, encodeVariableByte
+    mv   t6, a3
+    jal  ra, printb
+    mv   t6, a4
+    jal  ra, printb
+  
+    li   a7, 10
+    ecall
+print:
+    mv   a0, t6  # return in register a0
+    li   a7, 1
+    ecall
+    la   a0, \n
+    li   a7, 4
+    ecall
+    ret
+
+printb:
+    mv   a0, t6   # return in register a0
+    li   a7, 35   
+    ecall
+    la   a0, \n
+    li   a7, 4
+    ecall
+    ret
+    
+encodeVariableByte:
+    li   t0, 0x7f   # bitmask1
+    li   t1, 0x80   # bitmask2
+    li   t2, 0      # i = 0
+    li   t3, 4
+    li   t5, 0
+    j    first_register
+    
+first_register:
+    div  a5, t2, t3
+    bne  a5, t5, reset_bitmask
+    and  t4, a1, t0 # value & bitmask1
+    sll  t4, t4, t2 # (value & bitmask1) << i
+    or   a3, a3, t4
+    bne  t2, t5, not_firstbyte
+    slli t0, t0, 7
+    slli t1, t1, 8
+    addi t2, t2, 1
+    j    first_register
+
+not_firstbyte:
+    or   a3, a3, t1
+    slli t0, t0, 7
+    slli t1, t1, 8
+    addi t2, t2, 1
+    beq  t2, a0, exit
+    j    first_register
+
+exit:
+    jr   ra
+    
+second_register:
+    and  t4, a2, t0
+    sll  t4, t4, t6
+    or   a4, a4, t4
+    or   a4, a4, t1
+    slli t0, t0, 7
+    slli t1, t1, 8
+    li   t5, 7
+    beq  t2, t5, exit
+    addi t2, t2, 1
+    beq  t2, a0, exit
+    j    second_register
+    
+reset_bitmask:
+    li   t0, 0x7f   # bitmask1
+    li   t1, 0x80   # bitmask2
+    j    second_register
+
     
 CLZ:
     # a0 presents higher bit, a1 presents lower bit
@@ -105,7 +232,7 @@ CLZ:
     lw  t2, 4(t0)
     
     srli a1, s3, 4
-    slli s4, s2, 30
+    slli s4, s2, 28
     or   a1, a1, s4
     srli a0, s2, 4   # a0,a1 = x >> 4, s2,s3 = x
     add  s3, s3, a1  # lower bit add
@@ -135,14 +262,5 @@ CLZ:
     li   s2, 0
     andi s3, s3, 0x7f
     li   a0, 64
-    sub  a0, a0, s3
-    ret
-    
-    
-    
-
-
-
-
-
-    
+    sub  a0, a0, s3  # return in register t0
+    jr   ra
