@@ -30,7 +30,7 @@ void encodeVariableByte(uint64_t value, uint32_t *encodebytes, int len) {
             bitmask1 = 0x7f;
             bitmask2 = 0x80;
         }
-        encodebytes[i/4] |= i/4 == 0 ? (value & bitmask1) << i : (((value >> 32) & bitmask1) << (i % 4));
+        encodebytes[i/4] |= i/4 == 0 ? (value & bitmask1) << i : (((value >> 28) & bitmask1) << (i % 4));
         encodebytes[i/4] = i == 0 ? encodebytes[i/4] : (encodebytes[i/4] | bitmask2);
         bitmask1 <<= 7;
         bitmask2 <<= 8;
@@ -38,7 +38,7 @@ void encodeVariableByte(uint64_t value, uint32_t *encodebytes, int len) {
 }
 
 int main() {
-    uint64_t testdata[3] = { 128, 0xfffffff, 0xfffffffffffffff};
+    uint64_t testdata[3] = { 128, 0xfffffff, 0xffffffffffffff};
     int len1 = (63 - count_leading_zeros(testdata[0])) / 7 + 1;
     printf("%d\n", len1);
     uint32_t encodedData1[1] = {0}; 

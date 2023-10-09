@@ -2,12 +2,13 @@
 testdata:
         .word 0, 128
         .word 0, 0xfffffff
-        .word 0xfffffff, 0xffffffff
+        .word 0xffffff, 0xffffffff
         
 and1: .word 0x33333333, 0x33333333
 and2: .word 0x0f0f0f0f, 0x0f0f0f0f
 and3: .word 0x55555555, 0x55555555
 \n: .string "\n"
+EncodedBytes: .string "Encoded Bytes: "
 
 encodedData1:
     .word 0
@@ -33,7 +34,7 @@ main:
     lw   a3, 0(t5)
     jal  ra, encodeVariableByte
     mv   t6, a3
-    jal  ra, printb
+    jal  ra, printHEX
     
     la   t6, testdata
     lw   a0, 8(t6)
@@ -50,7 +51,7 @@ main:
     lw   a3, 0(t5)
     jal  ra, encodeVariableByte
     mv   t6, a3
-    jal  ra, printb
+    jal  ra, printHEX
     
     la   t6, testdata
     lw   a0, 16(t6)
@@ -68,24 +69,19 @@ main:
     lw   a4, 4(t5)
     jal  ra, encodeVariableByte
     mv   t6, a3
-    jal  ra, printb
+    jal  ra, printHEX
     mv   t6, a4
-    jal  ra, printb
+    jal  ra, printHEX
   
     li   a7, 10
     ecall
-print:
-    mv   a0, t6  # return in register a0
-    li   a7, 1
-    ecall
-    la   a0, \n
+
+printHEX:
+    la   a0, EncodedBytes
     li   a7, 4
     ecall
-    ret
-
-printb:
     mv   a0, t6   # return in register a0
-    li   a7, 35   
+    li   a7, 34   
     ecall
     la   a0, \n
     li   a7, 4
@@ -124,14 +120,13 @@ exit:
     jr   ra
     
 second_register:
-    and  t4, a2, t0
-    sll  t4, t4, t6
+    and  t4, a2, t0 # (value >> 28) & bitmask1
+    andi s0, t2, 0x3 # i % 4
+    sll  t4, t4, s0 # ((value >> 28) & bitmask1) << (i % 4)
     or   a4, a4, t4
     or   a4, a4, t1
     slli t0, t0, 7
     slli t1, t1, 8
-    li   t5, 7
-    beq  t2, t5, exit
     addi t2, t2, 1
     beq  t2, a0, exit
     j    second_register
@@ -139,6 +134,9 @@ second_register:
 reset_bitmask:
     li   t0, 0x7f   # bitmask1
     li   t1, 0x80   # bitmask2
+    slli a2, a2, 4
+    srli s1, a1, 28
+    or   a2, a2, s1 
     j    second_register
 
     
