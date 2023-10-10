@@ -44,7 +44,7 @@ main:
     sub  a0, t1, a0
     li   t1, 7
     div  a0, a0, t1
-    addi a0, a0, 1   #a0 = len1
+    addi a0, a0, 1   #a0 = len2
     lw   a1, 12(t6)   #a1,a2 = value  
     lw   a2, 8(t6)
     la   t5, encodedData2  # uint32_t encodedData2[1] = {0}
@@ -61,10 +61,10 @@ main:
     sub  a0, t1, a0
     li   t1, 7
     div  a0, a0, t1
-    addi a0, a0, 1   #a0 = len1
+    addi a0, a0, 1   #a0 = len3
     lw   a1, 20(t6)   #a1,a2 = value  
     lw   a2, 16(t6)
-    la   t5, encodedData3  # uint32_t encodedData2[2] = {0,0}
+    la   t5, encodedData3  # uint32_t encodedData3[2] = {0,0}
     lw   a3, 0(t5)
     lw   a4, 4(t5)
     jal  ra, encodeVariableByte
@@ -252,12 +252,8 @@ CLZ:
     add  s3, s3, a1
     add  s2, s2, a0
     
-    li   a1, 0
-    or   a1, a1, s2
-    li   a0, 0       # a0,a1 = x >> 32, s2,s3 = x
-    add  s3, s3, a1
+    add  s3, s3, s2
     
-    li   s2, 0
     andi s3, s3, 0x7f
     li   a0, 64
     sub  a0, a0, s3  # return in register t0
