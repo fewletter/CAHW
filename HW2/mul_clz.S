@@ -34,9 +34,9 @@ _start:
     
 start_mul:
     #reset
-    mv t0,s0
-    mv s0, s1
-    mv s1, t0
+    mv t0, s0      #A ^= B;
+    mv s0, s1      #B ^= A;
+    mv s1, t0      #A ^= B;
     mv t6, t5
     sub a0, a0, t6
     li t0, 0
@@ -50,30 +50,86 @@ int_mul:
     slt t1, s4, a0
     beq t1, zero, exit
     srl t0, s1, s4
-    andi t0, t0, 0x00000001        #check B's rightest bit
+    andi t0, t0, 0x00000001       #check B's rightest bit
     beq t0, zero, skip            #if(rightest bit is zero) jump
-    sll s5,s0,s4                    #s0 is A,S5 the low bit i want
+    sll s5,s0,s4                  #s0 is A,S5 the low bit i want
     li t2, 32
     sub t2, t2, s4
     srl s6, s0, t2             #s0 is A, S6 the high bit i want
     add s7, s3, s5             #s7 is 32_low + low bit i want
-    jal overflow_detect_function
-    
-no_overflow:
-    add s2, s2, s6
-    jal skip
-    
-skip:
-    addi s4, s4 ,1
-    jal int_mul
 
-overflow_detect_function:
     sltu t3, s7, s3
     mv s3, s7
     beq t3, zero, no_overflow
     # if not jump  -->  overflow
     add s2, s2, s6
     addi s2, s2, 1
+    addi s4, s4 ,1
+
+#   Loop unrolling 1
+
+    srl t0, s1, s4
+    andi t0, t0, 0x00000001       
+    beq t0, zero, skip            
+    sll s5,s0,s4                  
+    li t2, 32
+    sub t2, t2, s4
+    srl s6, s0, t2             
+    add s7, s3, s5             
+
+    sltu t3, s7, s3
+    mv s3, s7
+    beq t3, zero, no_overflow
+    # if not jump  -->  overflow
+    add s2, s2, s6
+    addi s2, s2, 1
+    addi s4, s4 ,1
+
+#   Loop unrolling 2
+
+    srl t0, s1, s4
+    andi t0, t0, 0x00000001       
+    beq t0, zero, skip            
+    sll s5,s0,s4                  
+    li t2, 32
+    sub t2, t2, s4
+    srl s6, s0, t2             
+    add s7, s3, s5             
+
+    sltu t3, s7, s3
+    mv s3, s7
+    beq t3, zero, no_overflow
+    # if not jump  -->  overflow
+    add s2, s2, s6
+    addi s2, s2, 1
+    addi s4, s4 ,1
+
+#   Loop unrolling 3
+
+    srl t0, s1, s4
+    andi t0, t0, 0x00000001       
+    beq t0, zero, skip            
+    sll s5,s0,s4                  
+    li t2, 32
+    sub t2, t2, s4
+    srl s6, s0, t2             
+    add s7, s3, s5             
+
+    sltu t3, s7, s3
+    mv s3, s7
+    beq t3, zero, no_overflow
+    # if not jump  -->  overflow
+    add s2, s2, s6
+    addi s2, s2, 1
+    addi s4, s4 ,1
+
+    jal int_mul
+    
+no_overflow:
+    add s2, s2, s6
+    jal skip
+    
+skip:
     addi s4, s4 ,1
     jal int_mul
 
@@ -123,7 +179,7 @@ exit:
     ecall
     li a0, 1
     mv a1, a3
-    mv a2, a3
+    li a2, 0
     li a7, 32
     ecall
     li a0, 0
